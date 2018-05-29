@@ -1,0 +1,251 @@
+<template>
+  <view class="select-construct">
+    <view class="select-area">
+      <text>{{slider1Value*scale+"~"+slider2Value*scale}}</text>
+      <view class="slider-container">
+        <slider style="{{'width: ' + slider1W + '%'}}"
+          class="slider-left"
+          min="{{min}}"
+          max="{{slider1Max}}"
+          color="#fed900"
+          selected-color="#e5e5e5"
+          @changing="changing"
+          catchtouchstart="changeStart"
+          @change="changed"
+          data-idx="1"
+          value="{{slider1Value}}">
+        </slider>
+        <slider
+          wx:if="{{!change}}"
+          style="{{'width: ' + slider2W + '%'}}"
+          class="slider-right"
+          min="{{slider2Min}}"
+          max="{{max}}"
+          color="#e5e5e5"
+          selected-color="#fed900"
+          @changing="changing"
+          catchtouchstart="changeStart"
+          @change="changed"
+          data-idx="2"
+          value="{{slider2Value}}">
+        </slider>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+
+export default class DoubleSlider extends wepy.component {
+  props = {
+    inputMax: {
+      type: Number,
+      default: 100
+    },
+    inputMin: {
+      type: Number,
+      default: 0
+    }
+  }
+
+  data = {
+    change: false, // 当两个slider在最右端重合时，将change设置为true，从而隐藏slider2，才能继续操作slider1
+    max: 100, // 两个slider所能达到的最大值
+    min: 0, // 两个slider所能取的最小值
+    rate: 1, // slider的最大最小值之差和100（或1000）之间的比率
+    scale: 1, // 比例系数。页面显示值的时候，需要将slider1Value(slider2Value)乘以比例系数scale
+    slider1Max: 100, // slider1的最大取值
+    slider2Min: 0, // slider2的最小取值
+    slider1Value: 0, // slider1的值
+    slider2Value: 100, // slider2的值
+    slider1W: 100, // slider1的宽度
+    slider2W: 0 // slider2的宽度
+  }
+
+  methods = {
+    changeStart(e) {
+      var idx = parseInt(e.currentTarget.dataset.idx)
+      if (idx === 1) {
+        let dW = (this.slider2Value - this.min) / this.rate
+        this.slider1W = dW
+        this.slider2W = 100 - dW
+        this.slider1Max = this.slider2Value
+        this.slider2Min = this.slider2Value
+        this.change = false
+      } else if (idx === 2) {
+        let dw = (this.max - this.slider1Value) / this.rate
+        this.slider2W = dw
+        this.slider1W = 100 - dw
+        this.slider1Max = this.slider1Value
+        this.slider2Min = this.slider1Value
+        this.change = false
+      }
+      this.$apply()
+    },
+
+    changing(e) {
+      var idx = parseInt(e.currentTarget.dataset.idx)
+      var value = e.detail.value
+      if (idx === 1) {
+        this.slider1Value = value
+      } else if (idx === 2) {
+        this.slider2Value = value
+      }
+      this.$apply()
+    },
+
+    changed() {
+      if (this.slider1Value === this.slider2Value && this.slider2Value === this.max) {
+        this.change = true
+      }
+      this.$apply()
+    }
+  }
+
+  judgeNum(min, max) {
+    var dValue = max - min
+    var numOk = false
+    if (dValue <= 0) {
+      this.showTip('最大值应该大于最小值')
+      return
+    } else if (dValue <= 300) {
+      this.rate = dValue / 100
+      this.scale = 1
+      numOk = true // numOk是输入的数字合法的标识
+    } else if (dValue <= 3000) {
+      if (min % 10 !== 0 || max % 10 !== 0) {
+        this.showTip('请输入整十数')
+      } else {
+        this.rate = dValue / 1000
+        this.scale = 10
+        numOk = true
+      }
+    } else if (dValue > 3000) {
+      this.showTip('差不能超过3000')
+      numOk = false
+    }
+    return numOk
+  }
+
+  showTip(text) {
+    wepy.showToast({
+      title: text,
+      icon: 'none'
+    })
+  }
+
+  sliderInit() {
+    var max = this.inputMax
+    var min = this.inputMin
+    var scale = this.scale
+    var numOk = this.judgeNum(min, max)
+
+    if (numOk) {
+      this.slider1Value = min / scale
+      this.slider1Min = min / scale
+      this.slider1Min = min / scale
+      this.slider1Max = max / scale
+      this.slider2Value = max / scale
+      this.slider2Max = max / scale
+      this.slider2Min = min / scale
+      this.slider2Max = max / scale
+      this.max = max / scale
+      this.min = min / scale
+      this.slider1W = 100
+      this.slider2W = 0
+      this.$apply()
+    }
+  }
+
+  onLoad() {
+    this.sliderInit()
+  }
+}
+</script>
+
+<style lang="css">
+.select-construct{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  top: 41px;
+  z-index: 999;
+  background: #fff;
+  width: 100%;
+}
+.select-area{
+  width: 80%;
+  padding: 30px 10% 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid #f7f7f7;
+}
+.slider-container{
+  width: 100%;
+  display: flex;
+  padding: 20px 0 10px;
+}
+.slider-left,.slider-right{
+  margin: 0;
+}
+
+.control-container{
+  display: flex;
+  width: 60%;
+  margin: 20px auto 0;
+  justify-content: space-between;
+}
+.label-container{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.input{
+  border: 1px solid #ff9362;
+  width: 80px;
+  margin-top: 10px;
+  text-align: center;
+  padding: 4px;
+}
+.confirm{
+   width: 80%;
+   margin-top: 20px;
+   background: #ff9362;
+   color: #fff;
+}
+.confirm:active{
+  background: #ff8600;
+}
+
+.tips-container{
+  display: flex;
+  flex-direction: column;
+  margin: 20px 15px;
+  font-size: 14px;
+  line-height: 24px;
+  text-align: justify;
+  color: #999;
+}
+.tip-title{
+  font-size: 16px;
+  font-weight: 600;
+  color: #ff9362;
+}
+.tip{
+  padding-left: 40px;
+  position: relative;
+}
+.tip::before{
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff9362;
+  position: absolute;
+  left: 26px;
+  top: 9px;
+
+}
+</style>
