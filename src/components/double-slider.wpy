@@ -1,7 +1,6 @@
 <template>
   <view class="select-construct">
     <view class="select-area">
-      <text>{{slider1Value*scale+"~"+slider2Value*scale}}</text>
       <view class="slider-container">
         <slider style="{{'width: ' + slider1W + '%'}}"
           class="slider-left"
@@ -10,9 +9,10 @@
           color="#fed900"
           selected-color="#e5e5e5"
           @changing="changing"
-          catchtouchstart="changeStart"
+          @touchstart.stop="changeStart"
           @change="changed"
           data-idx="1"
+          block-size="20"
           value="{{slider1Value}}">
         </slider>
         <slider
@@ -24,9 +24,10 @@
           color="#e5e5e5"
           selected-color="#fed900"
           @changing="changing"
-          catchtouchstart="changeStart"
+          @touchstart.stop="changeStart"
           @change="changed"
           data-idx="2"
+          block-size="20"
           value="{{slider2Value}}">
         </slider>
       </view>
@@ -54,13 +55,21 @@ export default class DoubleSlider extends wepy.component {
     max: 100, // 两个slider所能达到的最大值
     min: 0, // 两个slider所能取的最小值
     rate: 1, // slider的最大最小值之差和100（或1000）之间的比率
-    scale: 1, // 比例系数。页面显示值的时候，需要将slider1Value(slider2Value)乘以比例系数scale
     slider1Max: 100, // slider1的最大取值
     slider2Min: 0, // slider2的最小取值
     slider1Value: 0, // slider1的值
     slider2Value: 100, // slider2的值
     slider1W: 100, // slider1的宽度
     slider2W: 0 // slider2的宽度
+  }
+
+  watch = {
+    inputMin(newValue, oldValue) {
+      this.sliderInit()
+    },
+    inputMax(newValue, oldValue) {
+      this.sliderInit()
+    }
   }
 
   methods = {
@@ -89,8 +98,10 @@ export default class DoubleSlider extends wepy.component {
       var value = e.detail.value
       if (idx === 1) {
         this.slider1Value = value
+        this.$emit('slider1-change', value)
       } else if (idx === 2) {
         this.slider2Value = value
+        this.$emit('slider2-change', value)
       }
       this.$apply()
     },
@@ -109,49 +120,30 @@ export default class DoubleSlider extends wepy.component {
     if (dValue <= 0) {
       this.showTip('最大值应该大于最小值')
       return
-    } else if (dValue <= 300) {
+    } else {
       this.rate = dValue / 100
-      this.scale = 1
-      numOk = true // numOk是输入的数字合法的标识
-    } else if (dValue <= 3000) {
-      if (min % 10 !== 0 || max % 10 !== 0) {
-        this.showTip('请输入整十数')
-      } else {
-        this.rate = dValue / 1000
-        this.scale = 10
-        numOk = true
-      }
-    } else if (dValue > 3000) {
-      this.showTip('差不能超过3000')
-      numOk = false
+      numOk = true
     }
+    this.$apply()
     return numOk
   }
 
-  showTip(text) {
-    wepy.showToast({
-      title: text,
-      icon: 'none'
-    })
-  }
-
   sliderInit() {
-    var max = this.inputMax
-    var min = this.inputMin
-    var scale = this.scale
-    var numOk = this.judgeNum(min, max)
+    let max = this.inputMax
+    let min = this.inputMin
+    let numOk = this.judgeNum(min, max)
 
     if (numOk) {
-      this.slider1Value = min / scale
-      this.slider1Min = min / scale
-      this.slider1Min = min / scale
-      this.slider1Max = max / scale
-      this.slider2Value = max / scale
-      this.slider2Max = max / scale
-      this.slider2Min = min / scale
-      this.slider2Max = max / scale
-      this.max = max / scale
-      this.min = min / scale
+      this.slider1Value = min
+      this.slider1Min = min
+      this.slider1Min = min
+      this.slider1Max = max
+      this.slider2Value = max
+      this.slider2Max = max
+      this.slider2Min = min
+      this.slider2Max = max
+      this.max = max
+      this.min = min
       this.slider1W = 100
       this.slider2W = 0
       this.$apply()
